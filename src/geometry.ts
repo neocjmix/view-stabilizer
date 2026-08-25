@@ -12,6 +12,10 @@ export interface CompensationInput {
   element: RectLike;
   /** Relative device rotation, row-major, in device x-right/y-up/z-out coordinates. */
   rotation: Mat3;
+  /** Scales the measured axis-angle before projection. Default: 1. */
+  orientationGain?: number;
+  /** Scales the solved inverse-projective displacement. Default: 1. */
+  compensationStrength?: number;
   viewingDistance: number;
   viewerPose?: ViewerPose;
   physicalScreenWidth?: number;
@@ -158,6 +162,28 @@ export function clampRotation(rotation: Mat3, maxDegrees: number): {rotation: Ma
   ], angle: deg(angle), effectiveAngle: maxDegrees};
 }
 
+/** Scales a rotation in axis-angle space. Values above 1 extrapolate. */
+export function scaleRotation(rotation: Mat3, factor: number): Mat3 {
+  if (!Number.isFinite(factor) || factor <= 0) return IDENTITY_3;
+  const cosAngle = clamp((rotation[0] + rotation[4] + rotation[8] - 1) / 2, -1, 1);
+  const angle = Math.acos(cosAngle);
+  if (angle < 1e-7) return [...rotation] as Mat3;
+  const sinAngle = Math.sin(angle);
+  if (Math.abs(sinAngle) < 1e-7) return [...rotation] as Mat3;
+  let x = (rotation[7] - rotation[5]) / (2 * sinAngle);
+  let y = (rotation[2] - rotation[6]) / (2 * sinAngle);
+  let z = (rotation[3] - rotation[1]) / (2 * sinAngle);
+  const length = Math.hypot(x, y, z);
+  if (!Number.isFinite(length) || length < EPS) return IDENTITY_3;
+  x /= length; y /= length; z /= length;
+  const scaled = angle * factor, c = Math.cos(scaled), s = Math.sin(scaled), t = 1 - c;
+  return [
+    t*x*x+c, t*x*y-s*z, t*x*z+s*y,
+    t*x*y+s*z, t*y*y+c, t*y*z-s*x,
+    t*x*z-s*y, t*y*z+s*x, t*z*z+c,
+  ];
+}
+
 function identityResult(input: CompensationInput, tilt = 0, effectiveTilt = 0, strength = 0): CompensationResult {
   const v = input.viewport;
   const projected: Quad = [{x: 0, y: 0}, {x: v.width, y: 0}, {x: v.width, y: v.height}, {x: 0, y: v.height}];
@@ -171,16 +197,20 @@ export function computeCompensation(input: CompensationInput): CompensationResul
   if (!finite([...input.rotation, v.width, v.height, e.left, e.top, e.width, e.height, input.viewingDistance, input.maxTilt]) ||
       v.width <= 0 || v.height <= 0 || e.width <= 0 || e.height <= 0 || input.viewingDistance <= 0 || input.maxTilt <= 0) return identityResult(input);
 
+  const orientationGain = Number.isFinite(input.orientationGain) ? clamp(input.orientationGain!, 0, 2) : 1;
+  const gainedRotation = scaleRotation(input.rotation, orientationGain);
+  const outputGain = Number.isFinite(input.compensationStrength) ? clamp(input.compensationStrength!, 0, 2) : 1;
+
   // maxTilt is the angle between the screen normal and the calibrated normal.
   // Roll does not foreshorten the screen and must not trigger the safety falloff.
-  const rawTilt = deg(Math.acos(clamp(input.rotation[8], -1, 1)));
-  const totalAngle = clampRotation(input.rotation, 180).angle;
+  const rawTilt = deg(Math.acos(clamp(gainedRotation[8], -1, 1)));
+  const totalAngle = clampRotation(gainedRotation, 180).angle;
   const limitedRotation = rawTilt > input.maxTilt && rawTilt > EPS
-    ? clampRotation(input.rotation, totalAngle * input.maxTilt / rawTilt).rotation
-    : input.rotation;
+    ? clampRotation(gainedRotation, totalAngle * input.maxTilt / rawTilt).rotation
+    : gainedRotation;
   const effectiveTilt = Math.min(rawTilt, input.maxTilt);
   const falloff = Math.max(1, input.falloffDegrees ?? 15);
-  const strength = 1 - smoothstep(input.maxTilt, input.maxTilt + falloff, rawTilt);
+  const strength = (1 - smoothstep(input.maxTilt, input.maxTilt + falloff, rawTilt)) * outputGain;
   if (strength <= 0.001) return identityResult(input, rawTilt, effectiveTilt, 0);
 
   // iPhone 16 Pro active rectangular display width:

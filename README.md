@@ -15,6 +15,8 @@ import {createViewStabilizer} from "@neocjmix/view-stabilizer";
 
 const stabilizer = createViewStabilizer(document.querySelector(".target")!, {
   viewingDistance: 400,
+  orientationGain: 1,
+  compensationStrength: 1,
   maxTilt: 65,
   smoothing: 0.12,
 });
@@ -66,6 +68,8 @@ type TrackingState =
 
 interface ViewStabilizerOptions {
   viewingDistance?: number;       // mm, default 400
+  orientationGain?: number;       // axis-angle sensor/model gain, 0..2, default 1
+  compensationStrength?: number; // inverse-homography output gain, 0..2, default 1
   maxTilt?: number;               // degrees, default 65
   smoothing?: number;             // slerp fraction/frame, default 0.12
   enabled?: boolean;              // default true
@@ -85,7 +89,7 @@ interface ViewStabilizerOptions {
 | `recenter()` | Alias for `calibrate()`. |
 | `stop()` | Stops tracking and applies identity. |
 | `setEnabled(boolean)` | Turns compensation on/off while tracking continues. |
-| `setOptions(partial)` | Updates distance, tilt, smoothing, or physical width without recreation. |
+| `setOptions(partial)` | Updates distance, gains, tilt, smoothing, or physical width without recreation. |
 | `destroy()` | Stops, detaches, and restores the element's original inline transform styles. |
 
 The stabilizer owns the target element's inline `transform`, `transform-origin`, and `will-change`. If the element already needs a transform, place it in a wrapper and stabilize the wrapper.
@@ -139,7 +143,18 @@ Phase 1 uses a fixed provider returning `{x: 0, y: 0, z: viewingDistance}`. A fu
 
 ## Desktop simulation
 
-The demo can switch from Device sensor to Simulation and drive pitch, yaw, and roll sliders. Programmatically:
+The demo is a fixed full-viewport test rig: the viewport center, target rectangle center, modeled display-plane center, and rotation center coincide. Controls stay in an overlaid bottom panel so changing parameters does not move the geometry.
+
+The adjustable hypotheses are intentionally separated:
+
+- `orientationGain` scales the measured relative rotation in axis-angle space **before** projection. If sensor/device axes or the perceived physical rotation are over-reported, reduce this first.
+- `compensationStrength` scales the solved inverse-homography displacement **after** projection. It changes the visible correction without pretending the phone rotated less.
+- `physicalScreenWidth` and `viewingDistance` change the near/far-corner perspective asymmetry. They have little effect on the fundamental `sec(tilt)` foreshortening, so they should not be expected to fix uniform over-expansion by themselves.
+- `maxTilt` and `smoothing` are safety/temporal controls, not geometric calibration controls.
+
+The debug readout exposes raw sensor tilt, gained/model tilt, the corresponding `sec(tilt)` reference, and the actual compensated midpoint width. This makes a perceptual fitting session reproducible rather than collapsing every discrepancy into the distance setting.
+
+Switch from Device sensor to Simulation to drive pitch, yaw, and roll sliders. Programmatically:
 
 ```ts
 const simulated = createViewStabilizer(element, {simulation: true});

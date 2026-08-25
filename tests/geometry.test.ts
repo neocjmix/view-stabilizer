@@ -60,6 +60,17 @@ describe("projective compensation", () => {
     expect(result.cssMatrix3d).not.toMatch(/NaN|Infinity/);
   });
 
+  it("scales measured rotation independently from output strength", () => {
+    const yaw20 = computeCompensation(base(rotationFromEuler(0, 20, 0)));
+    const yaw40HalfAngle = computeCompensation(base(rotationFromEuler(0, 40, 0), {orientationGain: .5}));
+    expect(horizontalSpan(yaw40HalfAngle.matrix)).toBeCloseTo(horizontalSpan(yaw20.matrix), 5);
+
+    const full = computeCompensation(base(rotationFromEuler(0, 40, 0)));
+    const halfOutput = computeCompensation(base(rotationFromEuler(0, 40, 0), {compensationStrength: .5}));
+    expect(horizontalSpan(halfOutput.matrix)).toBeGreaterThan(240);
+    expect(horizontalSpan(halfOutput.matrix)).toBeLessThan(horizontalSpan(full.matrix));
+  });
+
   it("clamps and then fades beyond maxTilt", () => {
     const near = computeCompensation(base(rotationFromEuler(0, 70, 0)));
     const extreme = computeCompensation(base(rotationFromEuler(0, 82, 0)));

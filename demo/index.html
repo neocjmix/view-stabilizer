@@ -18,7 +18,7 @@
     <main>
       <section class="lab">
         <div class="lab-head">
-          <div><p>CALIBRATED / IMU / MATRIX3D</p><h1>Recenter, then tilt.</h1></div>
+          <div><p>FULL-VIEWPORT GEOMETRY LAB</p><h1>Recenter, then tilt.</h1></div>
           <div class="mode-tabs" role="group" aria-label="Input mode">
             <button id="mode-sensor" class="active">Sensor</button><button id="mode-simulation">Simulation</button>
           </div>
@@ -35,17 +35,16 @@
           <div class="stage-wrap">
             <div class="stage">
               <div class="crosshair"></div>
-              <div class="reference-outline"><span>SCREEN-SPACE REFERENCE</span></div>
               <div id="stabilized" class="stabilized-sample">
                 <article class="card">
                   <small>COMPENSATED DOM</small>
-                  <h2>Keep this rectangular.</h2>
-                  <p>The card should distort on the display and approach the fixed outline in your calibrated view.</p>
+                  <h2>Visual rectangle.</h2>
+                  <p>Layout center, display-plane center, and modeled rotation center are all aligned to the viewport center.</p>
                   <div><button>BUTTON</button><span>SMALL CHIP</span></div>
                 </article>
               </div>
             </div>
-            <p class="stage-note">The dashed outline is fixed in screen coordinates. It is a reference, not another transformed sample.</p>
+            <div class="center-label">VIEWPORT / ELEMENT / ROTATION CENTER</div>
           </div>
 
           <aside class="controls">
@@ -64,6 +63,25 @@
               <em><i>100</i><i>1500</i><i>3000 mm</i></em>
             </label>
 
+            <div class="parameter-grid">
+              <label class="range">
+                <span>Orientation gain <b id="orientation-gain-value">1.00×</b></span>
+                <input id="orientation-gain" type="range" min="0.20" max="1.40" value="1" step="0.01"/>
+              </label>
+              <label class="range">
+                <span>Output strength <b id="compensation-strength-value">1.00×</b></span>
+                <input id="compensation-strength" type="range" min="0.20" max="1.40" value="1" step="0.01"/>
+              </label>
+              <label class="range">
+                <span>Display width <b id="screen-width-value">66.59 mm</b></span>
+                <input id="screen-width" type="range" min="50" max="80" value="66.59" step="0.1"/>
+              </label>
+              <label class="range">
+                <span>Max tilt <b id="max-tilt-value">65°</b></span>
+                <input id="max-tilt" type="range" min="35" max="80" value="65" step="1"/>
+              </label>
+            </div>
+
             <div id="simulation-controls" hidden>
               <label class="range"><span>Pitch <b id="pitch-value">0°</b></span><input id="pitch" type="range" min="-75" max="75" value="0"/></label>
               <label class="range"><span>Yaw <b id="yaw-value">0°</b></span><input id="yaw" type="range" min="-75" max="75" value="0"/></label>
@@ -71,11 +89,11 @@
             </div>
 
             <details class="advanced">
-              <summary>Advanced / debug <span>iPhone 16 Pro · 66.59 mm</span></summary>
-              <label class="range"><span>Max tilt <b id="max-tilt-value">65°</b></span><input id="max-tilt" type="range" min="35" max="80" value="65" step="1"/></label>
+              <summary>Signal / matrix debug <span>raw → modeled → applied</span></summary>
               <label class="range"><span>Smoothing <b id="smoothing-value">0.12</b></span><input id="smoothing" type="range" min="0.02" max="1" value="0.12" step="0.01"/></label>
               <label class="toggle"><span><b>Projected quads</b><small>Screen and compensation geometry</small></span><input id="debug" type="checkbox"/><i></i></label>
               <div class="telemetry-grid">
+                <article class="metrics"><span>MODEL BREAKDOWN</span><div><b>Sensor tilt <i id="raw-angle">0.00°</i></b><b>Modeled tilt <i id="model-angle">0.00°</i></b><b>sec(tilt) <i id="expected-scale">1.000×</i></b><b>Applied width <i id="applied-scale">1.000×</i></b></div></article>
                 <article><span>ORIENTATION</span><pre id="orientation">alpha  —\nbeta   —\ngamma  —\nscreen —</pre></article>
                 <article><span>RELATIVE ROTATION</span><pre id="rotation">1.000  0.000  0.000\n0.000  1.000  0.000\n0.000  0.000  1.000</pre></article>
                 <article><span>CSS MATRIX3D</span><pre id="matrix">matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)</pre></article>

@@ -32,6 +32,10 @@ export interface ViewStabilizerOptions {
   enabled?: boolean;
   /** Physical width of the portrait display in mm. Default: 66.59 (iPhone 16 Pro active display). */
   physicalScreenWidth?: number;
+  /** Scales measured relative rotation in axis-angle space. Default: 1. */
+  orientationGain?: number;
+  /** Scales inverse-projective displacement after solving. Default: 1. */
+  compensationStrength?: number;
   viewerPoseProvider?: ViewerPoseProvider;
   /** Bypasses sensor support/permission and accepts setSimulationOrientation(). */
   simulation?: boolean;
@@ -47,7 +51,7 @@ export interface ViewStabilizer {
   /** Alias for calibrate(). */
   recenter(): boolean;
   setEnabled(enabled: boolean): void;
-  setOptions(options: Partial<Pick<ViewStabilizerOptions, "viewingDistance" | "maxTilt" | "smoothing" | "physicalScreenWidth">>): void;
+  setOptions(options: Partial<Pick<ViewStabilizerOptions, "viewingDistance" | "maxTilt" | "smoothing" | "physicalScreenWidth" | "orientationGain" | "compensationStrength">>): void;
   setSimulationOrientation(pitch: number, yaw: number, roll: number): void;
   getState(): TrackingState;
   getSnapshot(): StabilizerSnapshot;
@@ -84,7 +88,7 @@ class ViewStabilizerImpl implements ViewStabilizer {
   private compensation = identityCompensation();
   private readonly originalStyle: {transform: string; transformOrigin: string; willChange: string};
   private readonly poseProvider: ViewerPoseProvider;
-  private readonly options: Required<Pick<ViewStabilizerOptions, "viewingDistance" | "maxTilt" | "smoothing" | "physicalScreenWidth" | "simulation">> & Pick<ViewStabilizerOptions, "onStateChange" | "onUpdate">;
+  private readonly options: Required<Pick<ViewStabilizerOptions, "viewingDistance" | "maxTilt" | "smoothing" | "physicalScreenWidth" | "orientationGain" | "compensationStrength" | "simulation">> & Pick<ViewStabilizerOptions, "onStateChange" | "onUpdate">;
 
   constructor(private readonly element: HTMLElement, options: ViewStabilizerOptions) {
     this.options = {
@@ -92,6 +96,8 @@ class ViewStabilizerImpl implements ViewStabilizer {
       maxTilt: options.maxTilt ?? 65,
       smoothing: options.smoothing ?? 0.12,
       physicalScreenWidth: options.physicalScreenWidth ?? 66.59,
+      orientationGain: options.orientationGain ?? 1,
+      compensationStrength: options.compensationStrength ?? 1,
       simulation: options.simulation ?? false,
       ...(options.onStateChange ? {onStateChange: options.onStateChange} : {}),
       ...(options.onUpdate ? {onUpdate: options.onUpdate} : {}),
@@ -173,11 +179,13 @@ class ViewStabilizerImpl implements ViewStabilizer {
     if (!enabled) this.applyIdentity();
   }
 
-  setOptions(options: Partial<Pick<ViewStabilizerOptions, "viewingDistance" | "maxTilt" | "smoothing" | "physicalScreenWidth">>): void {
+  setOptions(options: Partial<Pick<ViewStabilizerOptions, "viewingDistance" | "maxTilt" | "smoothing" | "physicalScreenWidth" | "orientationGain" | "compensationStrength">>): void {
     if (options.viewingDistance !== undefined && Number.isFinite(options.viewingDistance)) this.options.viewingDistance = Math.max(1, options.viewingDistance);
     if (options.maxTilt !== undefined && Number.isFinite(options.maxTilt)) this.options.maxTilt = Math.min(89, Math.max(1, options.maxTilt));
     if (options.smoothing !== undefined && Number.isFinite(options.smoothing)) this.options.smoothing = Math.min(1, Math.max(0.001, options.smoothing));
     if (options.physicalScreenWidth !== undefined && Number.isFinite(options.physicalScreenWidth)) this.options.physicalScreenWidth = Math.max(1, options.physicalScreenWidth);
+    if (options.orientationGain !== undefined && Number.isFinite(options.orientationGain)) this.options.orientationGain = Math.min(2, Math.max(0, options.orientationGain));
+    if (options.compensationStrength !== undefined && Number.isFinite(options.compensationStrength)) this.options.compensationStrength = Math.min(2, Math.max(0, options.compensationStrength));
   }
 
   setSimulationOrientation(pitch: number, yaw: number, roll: number): void {
@@ -225,6 +233,8 @@ class ViewStabilizerImpl implements ViewStabilizer {
         viewerPose: this.poseProvider.getPose(),
         maxTilt: this.options.maxTilt,
         physicalScreenWidth: this.options.physicalScreenWidth,
+        orientationGain: this.options.orientationGain,
+        compensationStrength: this.options.compensationStrength,
       });
       this.element.style.transform = this.enabled ? this.compensation.cssMatrix3d : homographyToCssMatrix3d(IDENTITY_3);
       this.options.onUpdate?.(this.getSnapshot());

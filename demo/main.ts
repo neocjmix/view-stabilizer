@@ -15,6 +15,9 @@ const values = () => ({
   viewingDistance: Number(($<HTMLInputElement>("distance")).value),
   maxTilt: Number(($<HTMLInputElement>("max-tilt")).value),
   smoothing: Number(($<HTMLInputElement>("smoothing")).value),
+  physicalScreenWidth: Number(($<HTMLInputElement>("screen-width")).value),
+  orientationGain: Number(($<HTMLInputElement>("orientation-gain")).value),
+  compensationStrength: Number(($<HTMLInputElement>("compensation-strength")).value),
 });
 
 function create(mode: "sensor" | "simulation") {
@@ -22,7 +25,7 @@ function create(mode: "sensor" | "simulation") {
   baseRect = target.getBoundingClientRect();
   simulation = mode === "simulation";
   stabilizer = createViewStabilizer(target, {
-    ...values(), physicalScreenWidth: 66.59, simulation,
+    ...values(), simulation,
     onStateChange: paintState,
     onUpdate: paintTelemetry,
   });
@@ -57,7 +60,17 @@ function paintTelemetry(snapshot: StabilizerSnapshot) {
   lastTelemetryPaint = now;
   $("calibrated").textContent = snapshot.calibrated ? "set" : "waiting";
   $("input-source").textContent = snapshot.orientation?.source ?? "none";
-  $("tilt-value").textContent = `${snapshot.compensation.tilt.toFixed(1)}°`;
+  const rawTilt = Math.acos(Math.min(1, Math.max(-1, snapshot.relativeRotation[8]))) * 180 / Math.PI;
+  $("tilt-value").textContent = `${rawTilt.toFixed(1)}→${snapshot.compensation.tilt.toFixed(1)}°`;
+  $("raw-angle").textContent = `${rawTilt.toFixed(2)}°`;
+  $("model-angle").textContent = `${snapshot.compensation.tilt.toFixed(2)}°`;
+  const expectedScale = 1 / Math.max(.001, Math.cos(snapshot.compensation.tilt * Math.PI / 180));
+  $("expected-scale").textContent = `${expectedScale.toFixed(3)}×`;
+  const q = snapshot.compensation.targetQuad;
+  const left = {x:(q[0].x+q[3].x)/2,y:(q[0].y+q[3].y)/2};
+  const right = {x:(q[1].x+q[2].x)/2,y:(q[1].y+q[2].y)/2};
+  const appliedScale = Math.hypot(right.x-left.x,right.y-left.y) / Math.max(1, baseRect.width);
+  $("applied-scale").textContent = `${appliedScale.toFixed(3)}×`;
   const o = snapshot.orientation;
   $("orientation").textContent = o ? `alpha  ${o.alpha.toFixed(2)}\nbeta   ${o.beta.toFixed(2)}\ngamma  ${o.gamma.toFixed(2)}\nscreen ${o.screenAngle}°` : "alpha  —\nbeta   —\ngamma  —\nscreen —";
   $("rotation").textContent = matrixText(snapshot.relativeRotation);
@@ -77,7 +90,14 @@ $("debug").addEventListener("change", event => overlay.classList.toggle("visible
 $("mode-sensor").addEventListener("click", () => create("sensor"));
 $("mode-simulation").addEventListener("click", () => create("simulation"));
 
-for (const [id, output, suffix] of [["distance","distance-value"," mm"],["max-tilt","max-tilt-value","°"],["smoothing","smoothing-value",""]] as const) {
+for (const [id, output, suffix] of [
+  ["distance","distance-value"," mm"],
+  ["orientation-gain","orientation-gain-value","×"],
+  ["compensation-strength","compensation-strength-value","×"],
+  ["screen-width","screen-width-value"," mm"],
+  ["max-tilt","max-tilt-value","°"],
+  ["smoothing","smoothing-value",""]
+] as const) {
   $(id).addEventListener("input", event => {
     const value = (event.target as HTMLInputElement).value;
     $(output).textContent = value + suffix;
