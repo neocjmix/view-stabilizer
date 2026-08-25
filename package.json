@@ -1,0 +1,48 @@
+{
+  "name": "@neocjmix/view-stabilizer",
+  "version": "0.1.0",
+  "description": "Calibrated inverse-perspective compensation for DOM elements using device orientation.",
+  "license": "MIT",
+  "author": "ChanJin Park",
+  "type": "module",
+  "sideEffects": false,
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    },
+    "./geometry": {
+      "types": "./dist/geometry.d.ts",
+      "import": "./dist/geometry.js",
+      "default": "./dist/geometry.js"
+    }
+  },
+  "files": ["dist", "README.md", "LICENSE"],
+  "scripts": {
+    "dev": "vite",
+    "build": "npm run build:package && npm run build:demo",
+    "build:package": "node scripts/build-package.mjs",
+    "build:demo": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "pack:check": "npm run build:package && npm pack --dry-run --ignore-scripts"
+  },
+  "engines": {"node": ">=18"},
+  "publishConfig": {"access": "public"},
+  "repository": {"type": "git", "url": "git+https://github.com/neocjmix/view-stabilizer.git"},
+  "homepage": "https://neocjmix.github.io/view-stabilizer/",
+  "bugs": {"url": "https://github.com/neocjmix/view-stabilizer/issues"},
+  "keywords": ["device-orientation", "perspective", "homography", "matrix3d", "dom", "mobile"],
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "esbuild": "^0.25.0",
+    "typescript": "^5.9.0",
+    "vite": "^7.0.0",
+    "vitest": "^3.2.0"
+  }
+}
