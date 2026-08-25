@@ -3,109 +3,90 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="theme-color" content="#0a0b0d" />
-    <title>View Stabilizer — calibrated perspective compensation</title>
-    <meta name="description" content="A DOM element that distorts on screen so it looks rectangular from a calibrated viewpoint." />
+    <meta name="theme-color" content="#090a0c" />
+    <title>View Stabilizer Lab</title>
+    <meta name="description" content="Calibrated inverse-perspective compensation for DOM elements." />
   </head>
   <body>
     <svg id="debug-overlay" aria-hidden="true"><polygon id="projected-quad"/><polygon id="target-quad"/></svg>
+
     <header class="topbar">
-      <a href="#top" class="brand"><i></i><span>VIEW STABILIZER</span><small>PHASE 1</small></a>
-      <a href="https://github.com/neocjmix/view-stabilizer" target="_blank" rel="noreferrer">GitHub ↗</a>
+      <a href="." class="brand"><i></i><b>VIEW STABILIZER</b><small>LAB</small></a>
+      <a href="https://github.com/neocjmix/view-stabilizer" target="_blank" rel="noreferrer">SOURCE ↗</a>
     </header>
 
-    <main id="top">
-      <section class="hero">
-        <div class="hero-copy">
-          <p class="eyebrow">CALIBRATED / IMU / CSS MATRIX3D</p>
-          <h1>Wrong on screen.<br/><em>Right to your eye.</em></h1>
-          <p class="lede">Tilt the physical display. The DOM deliberately stretches and skews to cancel the screen plane’s perspective from your calibrated viewpoint.</p>
-          <div class="assumption"><b>PHASE 1 ASSUMPTION</b><span>Your eye stays near the calibration position while the phone rotates around its center.</span></div>
-        </div>
-        <div class="principle">
-          <span>PHYSICAL SCREEN</span><i>×</i><span>CSS HOMOGRAPHY<small>inverse projection</small></span><i>=</i><span>VISUAL RECTANGLE</span>
-        </div>
-      </section>
-
+    <main>
       <section class="lab">
         <div class="lab-head">
-          <div><p>01 / LIVE LAB</p><h2>Recenter. Then tilt.</h2></div>
+          <div><p>CALIBRATED / IMU / MATRIX3D</p><h1>Recenter, then tilt.</h1></div>
           <div class="mode-tabs" role="group" aria-label="Input mode">
-            <button id="mode-sensor" class="active">Device sensor</button><button id="mode-simulation">Simulation</button>
+            <button id="mode-sensor" class="active">Sensor</button><button id="mode-simulation">Simulation</button>
           </div>
         </div>
 
         <div class="status-strip">
           <span>STATE <b id="state">idle</b></span>
-          <span>CALIBRATION <b id="calibrated">waiting</b></span>
+          <span>CAL <b id="calibrated">waiting</b></span>
           <span>INPUT <b id="input-source">none</b></span>
-          <span>ANGLE <b id="tilt-value">0.0°</b></span>
+          <span>TILT <b id="tilt-value">0.0°</b></span>
         </div>
 
-        <div class="lab-grid">
+        <div class="workspace">
+          <div class="stage-wrap">
+            <div class="stage">
+              <div class="crosshair"></div>
+              <div class="reference-outline"><span>SCREEN-SPACE REFERENCE</span></div>
+              <div id="stabilized" class="stabilized-sample">
+                <article class="card">
+                  <small>COMPENSATED DOM</small>
+                  <h2>Keep this rectangular.</h2>
+                  <p>The card should distort on the display and approach the fixed outline in your calibrated view.</p>
+                  <div><button>BUTTON</button><span>SMALL CHIP</span></div>
+                </article>
+              </div>
+            </div>
+            <p class="stage-note">The dashed outline is fixed in screen coordinates. It is a reference, not another transformed sample.</p>
+          </div>
+
           <aside class="controls">
             <div class="action-grid">
-              <button id="permission" class="primary">1. Allow motion</button>
-              <button id="start">2. Start</button>
-              <button id="recenter">3. Recenter</button>
+              <button id="permission" class="primary">Allow motion</button>
+              <button id="start">Start</button>
+              <button id="recenter" class="accent">Recenter</button>
               <button id="stop">Stop</button>
             </div>
-            <label class="toggle"><span><b>Compensation</b><small>Apply inverse homography</small></span><input id="enabled" type="checkbox" checked/><i></i></label>
-            <label class="toggle"><span><b>Debug overlay</b><small>Projected and target quads</small></span><input id="debug" type="checkbox"/><i></i></label>
-            <label class="range"><span>Viewing distance <b id="distance-value">400 mm</b></span><input id="distance" type="range" min="250" max="800" value="400" step="10"/></label>
-            <label class="range"><span>Max tilt <b id="max-tilt-value">65°</b></span><input id="max-tilt" type="range" min="35" max="80" value="65" step="1"/></label>
-            <label class="range"><span>Smoothing <b id="smoothing-value">0.12</b></span><input id="smoothing" type="range" min="0.02" max="1" value="0.12" step="0.01"/></label>
+
+            <label class="toggle"><span><b>Compensation</b><small>Inverse projective transform</small></span><input id="enabled" type="checkbox" checked/><i></i></label>
+
+            <label class="range distance-range">
+              <span>Viewing distance <b id="distance-value">400 mm</b></span>
+              <input id="distance" type="range" min="100" max="3000" value="400" step="25"/>
+              <em><i>100</i><i>1500</i><i>3000 mm</i></em>
+            </label>
+
             <div id="simulation-controls" hidden>
               <label class="range"><span>Pitch <b id="pitch-value">0°</b></span><input id="pitch" type="range" min="-75" max="75" value="0"/></label>
               <label class="range"><span>Yaw <b id="yaw-value">0°</b></span><input id="yaw" type="range" min="-75" max="75" value="0"/></label>
               <label class="range"><span>Roll <b id="roll-value">0°</b></span><input id="roll" type="range" min="-45" max="45" value="0"/></label>
             </div>
-            <p id="notice">On iPhone, “Allow motion” must be tapped before Start.</p>
+
+            <details class="advanced">
+              <summary>Advanced / debug <span>iPhone 16 Pro · 66.59 mm</span></summary>
+              <label class="range"><span>Max tilt <b id="max-tilt-value">65°</b></span><input id="max-tilt" type="range" min="35" max="80" value="65" step="1"/></label>
+              <label class="range"><span>Smoothing <b id="smoothing-value">0.12</b></span><input id="smoothing" type="range" min="0.02" max="1" value="0.12" step="0.01"/></label>
+              <label class="toggle"><span><b>Projected quads</b><small>Screen and compensation geometry</small></span><input id="debug" type="checkbox"/><i></i></label>
+              <div class="telemetry-grid">
+                <article><span>ORIENTATION</span><pre id="orientation">alpha  —\nbeta   —\ngamma  —\nscreen —</pre></article>
+                <article><span>RELATIVE ROTATION</span><pre id="rotation">1.000  0.000  0.000\n0.000  1.000  0.000\n0.000  0.000  1.000</pre></article>
+                <article><span>CSS MATRIX3D</span><pre id="matrix">matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)</pre></article>
+              </div>
+              <div class="legend"><span>Strength <b id="strength">1.000</b></span><span>Fallback <b id="fallback">false</b></span></div>
+            </details>
+            <p id="notice">On iPhone, Allow motion must be tapped before Start.</p>
           </aside>
-
-          <div class="stage-wrap">
-            <div class="stage-labels"><span>UNCHANGED REFERENCE</span><span>COMPENSATED TARGET</span></div>
-            <div class="stage">
-              <div class="crosshair"></div>
-              <div class="sample raw-sample">
-                <article class="card"><small>NO TRANSFORM</small><h3>A fixed DOM rectangle.</h3><p>This copy stays rectangular in screen coordinates, so the tilted physical screen foreshortens it in your view.</p><div><button>BUTTON</button><span>REFERENCE</span></div></article>
-              </div>
-              <div id="stabilized" class="sample stabilized-sample">
-                <article class="card"><small>MATRIX3D ACTIVE</small><h3>A visual rectangle.</h3><p>This copy becomes deliberately wrong in screen coordinates to cancel the physical screen’s projection.</p><div><button>BUTTON</button><span>STABILIZED</span></div></article>
-              </div>
-            </div>
-            <p class="stage-note">The grid is fixed to the viewport. At large yaw, the right card should widen and become trapezoidal on the display.</p>
-          </div>
         </div>
-      </section>
-
-      <section class="debug-panel">
-        <div><p>02 / TELEMETRY</p><h2>Geometry, not a visual trick.</h2></div>
-        <div class="telemetry-grid">
-          <article><span>DEVICE ORIENTATION</span><pre id="orientation">alpha  —\nbeta   —\ngamma  —\nscreen —</pre></article>
-          <article><span>RELATIVE ROTATION</span><pre id="rotation">1.000  0.000  0.000\n0.000  1.000  0.000\n0.000  0.000  1.000</pre></article>
-          <article class="matrix-card"><span>CSS OUTPUT</span><pre id="matrix">matrix3d(1,0,0,0,0,1,0,0,0,0,1,0,0,0,0,1)</pre></article>
-        </div>
-        <div class="legend"><span><i class="cyan"></i>Projected physical screen</span><span><i class="orange"></i>Compensation target</span><span>Falloff strength <b id="strength">1.000</b></span><span>Fallback <b id="fallback">false</b></span></div>
-      </section>
-
-      <section class="code-section">
-        <div><p>03 / API</p><h2>One element. Six methods.</h2></div>
-        <pre><code>import { createViewStabilizer } from "@neocjmix/view-stabilizer";
-
-const stabilizer = createViewStabilizer(element, {
-  viewingDistance: 400,
-  maxTilt: 65,
-  smoothing: 0.12,
-});
-
-await stabilizer.requestPermission(); // call in a user gesture on iOS
-stabilizer.start();
-stabilizer.calibrate();               // canonical API
-stabilizer.recenter();                // readable alias</code></pre>
       </section>
     </main>
-    <footer><b>VIEW STABILIZER</b><span>DOM + CSS · NO WEBGL · NO CAMERA</span><small>MIT © 2026 ChanJin Park</small></footer>
     <script type="module" src="/main.ts"></script>
   </body>
 </html>

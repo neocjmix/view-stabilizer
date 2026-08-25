@@ -183,7 +183,9 @@ export function computeCompensation(input: CompensationInput): CompensationResul
   const strength = 1 - smoothstep(input.maxTilt, input.maxTilt + falloff, rawTilt);
   if (strength <= 0.001) return identityResult(input, rawTilt, effectiveTilt, 0);
 
-  const screenWidthMm = input.physicalScreenWidth ?? 70;
+  // iPhone 16 Pro active rectangular display width:
+  // 1206 physical pixels / 460 ppi * 25.4 mm/in = 66.59 mm.
+  const screenWidthMm = input.physicalScreenWidth ?? 66.59;
   const portraitCssWidth = Math.min(v.width, v.height);
   const mmPerCssPixel = screenWidthMm / portraitCssWidth;
   const cx = v.width / 2, cy = v.height / 2;

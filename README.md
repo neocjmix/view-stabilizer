@@ -69,7 +69,7 @@ interface ViewStabilizerOptions {
   maxTilt?: number;               // degrees, default 65
   smoothing?: number;             // slerp fraction/frame, default 0.12
   enabled?: boolean;              // default true
-  physicalScreenWidth?: number;   // mm estimate, default 70
+  physicalScreenWidth?: number;   // mm, default 66.59 (iPhone 16 Pro active display)
   viewerPoseProvider?: ViewerPoseProvider;
   simulation?: boolean;
   onStateChange?: (state: TrackingState) => void;
@@ -121,7 +121,7 @@ Consequences:
 - moving the head sideways breaks the assumed projection;
 - moving the phone substantially toward/away from the face changes apparent scale;
 - real rotation rarely occurs exactly around the screen center;
-- CSS pixels do not expose reliable physical display size, so the default assumes a 70 mm portrait screen width; tune `physicalScreenWidth` for precision;
+- CSS pixels do not expose reliable physical display size. The default is 66.59 mm: `1206 px / 460 ppi × 25.4`, the iPhone 16 Pro active rectangular display width. Tune `physicalScreenWidth` for another device;
 - large compensation can move content outside the viewport even before the safety falloff.
 
 This is calibrated view stabilization, not true face tracking.

@@ -22,7 +22,7 @@ function create(mode: "sensor" | "simulation") {
   baseRect = target.getBoundingClientRect();
   simulation = mode === "simulation";
   stabilizer = createViewStabilizer(target, {
-    ...values(), simulation,
+    ...values(), physicalScreenWidth: 66.59, simulation,
     onStateChange: paintState,
     onUpdate: paintTelemetry,
   });

@@ -30,7 +30,7 @@ export interface ViewStabilizerOptions {
   maxTilt?: number;
   smoothing?: number;
   enabled?: boolean;
-  /** Approximate physical width of the portrait screen in mm. Default: 70. */
+  /** Physical width of the portrait display in mm. Default: 66.59 (iPhone 16 Pro active display). */
   physicalScreenWidth?: number;
   viewerPoseProvider?: ViewerPoseProvider;
   /** Bypasses sensor support/permission and accepts setSimulationOrientation(). */
@@ -91,7 +91,7 @@ class ViewStabilizerImpl implements ViewStabilizer {
       viewingDistance: options.viewingDistance ?? 400,
       maxTilt: options.maxTilt ?? 65,
       smoothing: options.smoothing ?? 0.12,
-      physicalScreenWidth: options.physicalScreenWidth ?? 70,
+      physicalScreenWidth: options.physicalScreenWidth ?? 66.59,
       simulation: options.simulation ?? false,
       ...(options.onStateChange ? {onStateChange: options.onStateChange} : {}),
       ...(options.onUpdate ? {onUpdate: options.onUpdate} : {}),
